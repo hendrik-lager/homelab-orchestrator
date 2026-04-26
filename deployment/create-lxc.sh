@@ -37,7 +37,7 @@ msg_info "Installing HomeLab Orchestrator..."
 
 export DEBIAN_FRONTEND=noninteractive
 $STD apt update
-$STD apt install -y python3.11 python3.11-venv python3-pip nodejs npm nginx sqlite3 curl git
+$STD apt install -y python3 python3-venv python3-pip nodejs npm nginx sqlite3 curl git
 
 APP_DIR="/opt/homelab-orchestrator"
 APP_USER="homelab"
@@ -55,7 +55,7 @@ if [ ! -d "$APP_DIR/.git" ]; then
   $STD git clone "$GITHUB_CLONE" "$APP_DIR"
 fi
 
-$STD python3.11 -m venv "$APP_DIR/.venv"
+$STD python3 -m venv "$APP_DIR/.venv"
 $STD "$APP_DIR/.venv/bin/pip" install --upgrade pip
 $STD "$APP_DIR/.venv/bin/pip" install -e "$APP_DIR/backend/"
 
@@ -64,7 +64,7 @@ $STD cd "$APP_DIR/backend" && $STD "$APP_DIR/.venv/bin/alembic" upgrade head
 $STD cd "$APP_DIR/frontend" && $STD npm ci && $STD npm run build && $STD cp -r build/* "$APP_DIR/frontend/"
 
 if [ ! -f "$APP_DIR/.env" ]; then
-  $STD python3.11 -c "from cryptography.fernet import Fernet; print(f'SECRET_KEY={Fernet.generate_key().decode()}')" > "$APP_DIR/.env"
+  $STD python3 -c "from cryptography.fernet import Fernet; print(f'SECRET_KEY={Fernet.generate_key().decode()}')" > "$APP_DIR/.env"
   $STD tee -a "$APP_DIR/.env" <<'ENVEOF'
 DATABASE_URL=sqlite+aiosqlite:///./data/homelab.db
 SMTP_HOST=
