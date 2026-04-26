@@ -1,0 +1,24 @@
+[Unit]
+Description=HomeLab Orchestrator
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=homelab
+Group=homelab
+WorkingDirectory=/opt/homelab-orchestrator/backend
+EnvironmentFile=/opt/homelab-orchestrator/.env
+ExecStart=/opt/homelab-orchestrator/.venv/bin/uvicorn app.main:app \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --workers 1
+Restart=on-failure
+RestartSec=10s
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/homelab-orchestrator/data /opt/homelab-orchestrator/logs
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

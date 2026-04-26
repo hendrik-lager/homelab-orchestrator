@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+:root {
+  --color-status-up: theme(colors.green.500);
+  --color-status-down: theme(colors.red.500);
+  --color-status-degraded: theme(colors.yellow.500);
+  --color-status-unknown: theme(colors.gray.400);
+}
+
+body {
+  @apply bg-gray-950 text-gray-100;
+}
