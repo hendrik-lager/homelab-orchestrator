@@ -81,7 +81,8 @@ ENVEOF
   chown "$APP_USER:$APP_USER" "$APP_DIR/.env"
 fi
 
-cd "$APP_DIR" && $STD "$APP_DIR/.venv/bin/alembic" -c "$APP_DIR/backend/alembic.ini" upgrade head
+set -a; . "$APP_DIR/.env"; set +a
+cd "$APP_DIR/backend" && $STD "$APP_DIR/.venv/bin/alembic" upgrade head
 
 $STD cd "$APP_DIR/frontend" && $STD npm ci && $STD npm run build && $STD cp -r build/* "$APP_DIR/frontend/"
 

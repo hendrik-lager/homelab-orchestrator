@@ -51,7 +51,8 @@ EOF
     chown "$APP_USER:$APP_USER" "$APP_DIR/.env"
 fi
 
-cd "$APP_DIR" && "$APP_DIR/.venv/bin/alembic" -c "$APP_DIR/backend/alembic.ini" upgrade head
+set -a; . "$APP_DIR/.env"; set +a
+cd "$APP_DIR/backend" && "$APP_DIR/.venv/bin/alembic" upgrade head && cd ..
 
 cd "$APP_DIR/frontend" && npm ci && npm run build && cp -r build/* "$APP_DIR/frontend/" && cd ..
 
