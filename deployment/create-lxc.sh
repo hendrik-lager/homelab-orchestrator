@@ -52,6 +52,7 @@ GITHUB_CLONE="https://github.com/${GITHUB_REPO}.git"
 
 if [ ! -d "$APP_DIR/.git" ]; then
   msg_info "Cloning repository..."
+  rm -rf "$APP_DIR"
   $STD git clone "$GITHUB_CLONE" "$APP_DIR"
 fi
 
