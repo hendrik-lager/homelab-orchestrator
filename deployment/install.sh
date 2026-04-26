@@ -1,11 +1,23 @@
 #!/bin/bash
 set -euo pipefail
 
+GITHUB_REPO="${GITHUB_REPO:-hendrik-lager/homelab-orchestrator}"
+GITHUB_BRANCH="${GITHUB_BRANCH:-main}"
+GITHUB_CLONE="https://github.com/${GITHUB_REPO}.git"
+
 APP_DIR="/opt/homelab-orchestrator"
 APP_USER="homelab"
 
 echo "=== HomeLab Orchestrator Install ==="
 
+if [ ! -d "$APP_DIR/.git" ]; then
+    echo "Klone Repository..."
+    git clone "$GITHUB_CLONE" "$APP_DIR"
+fi
+
+cd "$APP_DIR"
+
+export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y python3.12 python3.12-venv python3-pip nodejs npm nginx sqlite3 curl git
 
@@ -16,11 +28,11 @@ chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
 python3.12 -m venv "$APP_DIR/.venv"
 "$APP_DIR/.venv/bin/pip" install --upgrade pip
-"$APP_DIR/.venv/bin/pip" install -e backend/
+"$APP_DIR/.venv/bin/pip" install -e "$APP_DIR/backend/"
 
-cd backend && "$APP_DIR/.venv/bin/alembic" upgrade head && cd ..
+cd "$APP_DIR/backend" && "$APP_DIR/.venv/bin/alembic" upgrade head && cd ..
 
-cd frontend && npm ci && npm run build && cp -r build/* "$APP_DIR/frontend/" && cd ..
+cd "$APP_DIR/frontend" && npm ci && npm run build && cp -r build/* "$APP_DIR/frontend/" && cd ..
 
 if [ ! -f "$APP_DIR/.env" ]; then
     python3.12 -c "from cryptography.fernet import Fernet; print(f'SECRET_KEY={Fernet.generate_key().decode()}')" > "$APP_DIR/.env"
@@ -43,17 +55,21 @@ EOF
     chown "$APP_USER:$APP_USER" "$APP_DIR/.env"
 fi
 
-cp deployment/homelab-orchestrator.service /etc/systemd/system/
+cp "$APP_DIR/deployment/homelab-orchestrator.service" /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable homelab-orchestrator
 
-cp deployment/nginx.conf /etc/nginx/sites-available/homelab-orchestrator
+cp "$APP_DIR/deployment/nginx.conf" /etc/nginx/sites-available/homelab-orchestrator
 ln -sf /etc/nginx/sites-available/homelab-orchestrator /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 systemctl enable nginx
 
 echo ""
 echo "=== Installation abgeschlossen ==="
-echo "1. Bearbeite: $APP_DIR/.env  (SMTP-Daten eintragen)"
-echo "2. Starte:    systemctl start homelab-orchestrator nginx"
-echo "3. Öffne:     http://$(hostname -I | awk '{print $1}')"
+echo "WebUI:       http://$(hostname -I | awk '{print $1}')"
+echo "API:         http://$(hostname -I | awk '{print $1}'):8000"
+echo ""
+echo "  .env bearbeiten:   nano $APP_DIR/.env"
+echo "  Services:"
+echo "    systemctl status homelab-orchestrator"
+echo "    systemctl status nginx"

@@ -14,8 +14,10 @@ check_command() {
 check_command pct
 check_command pvesh
 
-GITHUB_REPO="${GITHUB_REPO:-}"
+GITHUB_REPO="${GITHUB_REPO:-hendrik-lager/homelab-orchestrator}"
 GITHUB_BRANCH="${GITHUB_BRANCH:-main}"
+GITHUB_RAW="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}"
+GITHUB_CLONE="https://github.com/${GITHUB_REPO}.git"
 
 echo "Verfügbare Proxmox Storage:"
 pvesh get /storage --output-format json 2>/dev/null | jq -r '.[] | "\(.storage) (\(.type))"' 2>/dev/null || echo "  local, local-lvm"
@@ -121,6 +123,9 @@ if [[ "${AUTOINSTALL}" =~ ^[jJyY]$ ]]; then
     echo ""
     echo "[4/4] Automatische Installation..."
 
+    GITHUB_REPO="hendrik-lager/homelab-orchestrator"
+    GITHUB_CLONE="https://github.com/${GITHUB_REPO}.git"
+
     INSTALL_SCRIPT='#!/bin/bash
 set -euo pipefail
 
@@ -137,6 +142,8 @@ useradd -r -s /sbin/nologin -d "$APP_DIR" "$APP_USER" 2>/dev/null || true
 
 mkdir -p "$APP_DIR"/{data,logs,frontend}
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
+
+git clone "$GITHUB_CLONE" "$APP_DIR"
 
 python3.12 -m venv "$APP_DIR/.venv"
 "$APP_DIR/.venv/bin/pip" install --upgrade pip
@@ -203,7 +210,7 @@ else
     echo "     pct enter $VMID"
     echo ""
     echo "  2. Repository klonen und installieren:"
-    echo "     git clone https://github.com/anomalyco/homelab-orchestrator.git /opt/homelab-orchestrator"
+    echo "     git clone $GITHUB_CLONE /opt/homelab-orchestrator"
     echo "     bash /opt/homelab-orchestrator/deployment/install.sh"
 fi
 
