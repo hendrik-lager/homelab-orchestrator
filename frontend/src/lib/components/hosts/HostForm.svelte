@@ -29,7 +29,7 @@
   }
 </script>
 
-<form class="space-y-4" onsubmit|preventDefault={handleSubmit}>
+<form class="space-y-4" onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
   <div>
     <label class="block text-sm text-gray-400 mb-1">Name</label>
     <input type="text" bind:value={name} class="w-full bg-gray-700 rounded px-3 py-2 text-white" required />

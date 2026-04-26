@@ -10,9 +10,9 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     register_tasks()
-    await scheduler.start()
+    scheduler.start()
     yield
-    await scheduler.shutdown()
+    scheduler.shutdown()
 
 app = FastAPI(title="HomeLab Orchestrator", lifespan=lifespan)
 
