@@ -52,6 +52,7 @@ if [ ! -d "$APP_DIR/.git" ]; then
   rm -rf "$APP_DIR"
   $STD git clone "$GITHUB_CLONE" "$APP_DIR"
 else
+  $STD git config --global --add safe.directory "$APP_DIR"
   $STD git -C "$APP_DIR" pull origin main
 fi
 
