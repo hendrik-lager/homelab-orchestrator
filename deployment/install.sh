@@ -28,7 +28,7 @@ chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
 python3 -m venv "$APP_DIR/.venv"
 "$APP_DIR/.venv/bin/pip" install --upgrade pip
-"$APP_DIR/.venv/bin/pip" install -e "$APP_DIR/backend/"
+"$APP_DIR/.venv/bin/pip" install fastapi uvicorn sqlalchemy aiosqlite alembic pydantic-settings httpx asyncssh apscheduler cryptography aiosmtplib
 
 cd "$APP_DIR/backend" && "$APP_DIR/.venv/bin/alembic" upgrade head && cd ..
 
