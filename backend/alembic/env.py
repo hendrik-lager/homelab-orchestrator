@@ -21,6 +21,14 @@ target_metadata = Base.metadata
 if db_url := os.environ.get("DATABASE_URL"):
     config.set_main_option("sqlalchemy.url", db_url)
 
+# Ensure the SQLite database directory exists before alembic tries to connect
+_url = config.get_main_option("sqlalchemy.url") or ""
+if _url.startswith("sqlite"):
+    from pathlib import Path
+    _db_path = _url.split("///")[-1]
+    if _db_path and _db_path != ":memory:":
+        Path(_db_path).parent.mkdir(parents=True, exist_ok=True)
+
 
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")

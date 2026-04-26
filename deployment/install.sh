@@ -13,6 +13,8 @@ echo "=== HomeLab Orchestrator Install ==="
 if [ ! -d "$APP_DIR/.git" ]; then
     echo "Klone Repository..."
     git clone "$GITHUB_CLONE" "$APP_DIR"
+else
+    git -C "$APP_DIR" pull origin main
 fi
 
 cd "$APP_DIR"

@@ -51,6 +51,8 @@ if [ ! -d "$APP_DIR/.git" ]; then
   msg_info "Cloning repository..."
   rm -rf "$APP_DIR"
   $STD git clone "$GITHUB_CLONE" "$APP_DIR"
+else
+  $STD git -C "$APP_DIR" pull origin main
 fi
 
 $STD mkdir -p "$APP_DIR"/{data,logs,frontend}
