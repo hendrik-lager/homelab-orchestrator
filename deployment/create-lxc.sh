@@ -44,9 +44,6 @@ APP_USER="homelab"
 
 $STD useradd -r -s /sbin/nologin -d "$APP_DIR" "$APP_USER" 2>/dev/null || true
 
-$STD mkdir -p "$APP_DIR"/{data,logs,frontend}
-$STD chown -R "$APP_USER:$APP_USER" "$APP_DIR"
-
 GITHUB_REPO="hendrik-lager/homelab-orchestrator"
 GITHUB_CLONE="https://github.com/${GITHUB_REPO}.git"
 
@@ -55,6 +52,9 @@ if [ ! -d "$APP_DIR/.git" ]; then
   rm -rf "$APP_DIR"
   $STD git clone "$GITHUB_CLONE" "$APP_DIR"
 fi
+
+$STD mkdir -p "$APP_DIR"/{data,logs,frontend}
+$STD chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
 $STD python3 -m venv "$APP_DIR/.venv"
 $STD "$APP_DIR/.venv/bin/pip" install --upgrade pip
