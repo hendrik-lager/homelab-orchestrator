@@ -58,7 +58,8 @@ fi
 
 $STD python3 -m venv "$APP_DIR/.venv"
 $STD "$APP_DIR/.venv/bin/pip" install --upgrade pip
-$STD "$APP_DIR/.venv/bin/pip" install -e "$APP_DIR/backend/"
+$STD "$APP_DIR/.venv/bin/pip" install fastapi uvicorn sqlalchemy aiosqlite alembic pydantic-settings httpx asyncssh apscheduler cryptography aiosmtplib
+$STD "$APP_DIR/.venv/bin/pip" install /opt/homelab-orchestrator/backend/
 
 $STD cd "$APP_DIR/backend" && $STD "$APP_DIR/.venv/bin/alembic" upgrade head
 
