@@ -60,14 +60,10 @@ $STD python3 -m venv "$APP_DIR/.venv"
 $STD "$APP_DIR/.venv/bin/pip" install --upgrade pip
 $STD "$APP_DIR/.venv/bin/pip" install fastapi uvicorn sqlalchemy aiosqlite alembic pydantic-settings httpx asyncssh apscheduler cryptography aiosmtplib
 
-$STD cd "$APP_DIR/backend" && $STD "$APP_DIR/.venv/bin/alembic" upgrade head
-
-$STD cd "$APP_DIR/frontend" && $STD npm ci && $STD npm run build && $STD cp -r build/* "$APP_DIR/frontend/"
-
 if [ ! -f "$APP_DIR/.env" ]; then
-  $STD python3 -c "from cryptography.fernet import Fernet; print(f'SECRET_KEY={Fernet.generate_key().decode()}')" > "$APP_DIR/.env"
-  $STD tee -a "$APP_DIR/.env" <<'ENVEOF'
-DATABASE_URL=sqlite+aiosqlite:///./data/homelab.db
+  python3 -c "from cryptography.fernet import Fernet; print(f'SECRET_KEY={Fernet.generate_key().decode()}')" > "$APP_DIR/.env"
+  tee -a "$APP_DIR/.env" <<'ENVEOF'
+DATABASE_URL=sqlite+aiosqlite:////opt/homelab-orchestrator/data/homelab.db
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_USER=
@@ -81,9 +77,13 @@ HEALTH_CHECK_INTERVAL_SECONDS=60
 UPDATE_SCAN_INTERVAL_SECONDS=3600
 METRIC_COLLECT_INTERVAL_SECONDS=60
 ENVEOF
-  $STD chmod 600 "$APP_DIR/.env"
-  $STD chown "$APP_USER:$APP_USER" "$APP_DIR/.env"
+  chmod 600 "$APP_DIR/.env"
+  chown "$APP_USER:$APP_USER" "$APP_DIR/.env"
 fi
+
+cd "$APP_DIR" && $STD "$APP_DIR/.venv/bin/alembic" -c "$APP_DIR/backend/alembic.ini" upgrade head
+
+$STD cd "$APP_DIR/frontend" && $STD npm ci && $STD npm run build && $STD cp -r build/* "$APP_DIR/frontend/"
 
 $STD cp "$APP_DIR/deployment/homelab-orchestrator.service" /etc/systemd/system/
 $STD systemctl daemon-reload
