@@ -12,7 +12,12 @@ echo "=== HomeLab Orchestrator Install ==="
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y python3 python3-venv python3-pip nodejs npm nginx sqlite3 curl git
+apt-get install -y python3 python3-venv python3-pip nginx sqlite3 curl git
+
+if ! node --version 2>/dev/null | grep -q "^v2[02]\."; then
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+    apt-get install -y nodejs
+fi
 
 if [ ! -d "$APP_DIR/.git" ]; then
     echo "Klone Repository..."
