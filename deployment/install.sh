@@ -69,6 +69,8 @@ cd "$APP_DIR/backend" && "$APP_DIR/.venv/bin/alembic" upgrade head && cd ..
 chown -R "$APP_USER:$APP_USER" "$APP_DIR/data"
 
 cd "$APP_DIR/frontend" && npm install --legacy-peer-deps && npm run build && cp -r build/* "$APP_DIR/frontend/" && cd ..
+chmod -R o+rX "$APP_DIR/frontend"
+chmod o+x "$APP_DIR"
 
 cp "$APP_DIR/deployment/homelab-orchestrator.service" /etc/systemd/system/
 systemctl daemon-reload
