@@ -39,7 +39,7 @@ python3 -m venv "$APP_DIR/.venv"
     "pydantic-settings>=2.6" \
     "httpx>=0.28" \
     "asyncssh>=2.19" \
-    "apscheduler>=4.0" \
+    "apscheduler>=3.10,<4" \
     "cryptography>=44" \
     "aiosmtplib>=3.0"
 
