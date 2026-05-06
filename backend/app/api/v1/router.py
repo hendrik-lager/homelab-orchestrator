@@ -6,6 +6,7 @@ from .dashboard import router as dashboard_router
 from .alerts import router as alerts_router
 from .jobs import router as jobs_router
 from .websocket import router as ws_router
+from .auto_update import router as auto_update_router
 
 api_router = APIRouter()
 api_router.include_router(hosts_router, prefix="/hosts", tags=["hosts"])
@@ -15,3 +16,4 @@ api_router.include_router(dashboard_router, prefix="/dashboard", tags=["dashboar
 api_router.include_router(alerts_router, prefix="/alerts", tags=["alerts"])
 api_router.include_router(jobs_router, prefix="/jobs", tags=["jobs"])
 api_router.include_router(ws_router, prefix="/ws", tags=["websocket"])
+api_router.include_router(auto_update_router, prefix="/auto-update", tags=["auto-update"])

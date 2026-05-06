@@ -9,6 +9,15 @@ class AptConnector:
     def __init__(self, ssh_connector: SSHConnector):
         self.ssh = ssh_connector
 
+    async def install_packages(self, packages: list[str] | None = None) -> tuple[bool, str]:
+        if packages:
+            pkgs = " ".join(packages)
+            cmd = f"DEBIAN_FRONTEND=noninteractive sudo apt-get install --only-upgrade -y {pkgs} 2>&1"
+        else:
+            cmd = "DEBIAN_FRONTEND=noninteractive sudo apt-get upgrade -y 2>&1"
+        stdout, stderr, code = await self.ssh.run(cmd)
+        return code == 0, stdout + stderr
+
     async def get_upgradable_packages(self) -> list[dict]:
         await self.ssh.run("sudo apt-get update -qq 2>/dev/null || true")
         stdout, _, _ = await self.ssh.run(

@@ -63,12 +63,13 @@ async def _scan_host(db, host: Host):
                 record = UpdateRecord(
                     host_id=host.id,
                     update_type="homeassistant",
-                    package_name=upd["name"],
+                    package_name=upd["entity_id"],
                     current_version=upd["installed_version"],
                     available_version=upd["latest_version"],
                     is_security=upd["is_security"],
                     status="pending",
                     detected_at=datetime.utcnow(),
+                    notes=upd["name"],
                 )
                 db.add(record)
 

@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
+import app.models.auto_update_settings  # noqa: F401 – registers table with Base.metadata
 from app.tasks.scheduler import scheduler, register_tasks
 from app.api.v1.router import api_router
 

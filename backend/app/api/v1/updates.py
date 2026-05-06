@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
 from app.models.update import UpdateRecord
 
 router = APIRouter()
+
 
 @router.get("/")
 async def list_updates(
@@ -23,9 +24,18 @@ async def list_updates(
     result = await db.execute(query.order_by(UpdateRecord.detected_at.desc()))
     return result.scalars().all()
 
+
+@router.post("/{update_id}/apply")
+async def apply_single_update(update_id: int, db: AsyncSession = Depends(get_db)):
+    from app.services.update_service import apply_update
+    ok, output = await apply_update(db, update_id)
+    if not ok:
+        raise HTTPException(status_code=500, detail=output)
+    return {"ok": True, "output": output}
+
+
 @router.patch("/{update_id}/status")
 async def set_update_status(update_id: int, data: dict, db: AsyncSession = Depends(get_db)):
-    from fastapi import HTTPException
     result = await db.execute(select(UpdateRecord).where(UpdateRecord.id == update_id))
     record = result.scalar_one_or_none()
     if not record:

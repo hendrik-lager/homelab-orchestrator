@@ -58,6 +58,27 @@ class ProxmoxConnector(BaseConnector):
             r.raise_for_status()
             return r.json()["data"]
 
+    async def install_pve_updates(self, username: str, private_key: str, packages: list[str] | None = None) -> tuple[bool, str]:
+        """Install PVE updates via SSH using pveupgrade or apt-get dist-upgrade."""
+        import asyncssh
+        key = asyncssh.import_private_key(private_key)
+        connect_args = {
+            "host": self.host_address,
+            "port": 22,
+            "username": username,
+            "client_keys": [key],
+            "known_hosts": None,
+        }
+        if packages:
+            pkgs = " ".join(packages)
+            cmd = f"DEBIAN_FRONTEND=noninteractive apt-get install --only-upgrade -y {pkgs} 2>&1"
+        else:
+            cmd = "DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y 2>&1"
+        async with asyncssh.connect(**connect_args) as conn:
+            result = await conn.run(cmd, check=False)
+            output = (result.stdout or "") + (result.stderr or "")
+            return result.exit_status == 0, output
+
     async def get_pve_updates(self) -> list[dict]:
         """
         Triggert apt-Update via API-Task, wartet, liest dann verfügbare Pakete.

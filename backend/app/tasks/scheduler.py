@@ -14,6 +14,7 @@ JOB_LABELS: dict[str, str] = {
     "metric_collector": "Metrik Erfassung",
     "service_discovery": "Service Discovery",
     "cleanup": "Datenbereinigung",
+    "auto_install": "Auto-Install",
 }
 
 
@@ -80,3 +81,41 @@ def register_tasks():
         max_instances=1,
         replace_existing=True,
     )
+
+
+async def refresh_auto_install_job():
+    """Read AutoUpdateSettings from DB and add/update/remove the auto_install job."""
+    from app.database import AsyncSessionLocal
+    from app.models.auto_update_settings import AutoUpdateSettings
+    from sqlalchemy import select
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(AutoUpdateSettings).where(AutoUpdateSettings.id == 1))
+        cfg = result.scalar_one_or_none()
+
+    existing = scheduler.get_job("auto_install")
+
+    if not cfg or not cfg.enabled:
+        if existing:
+            scheduler.remove_job("auto_install")
+        return
+
+    from app.tasks.auto_install import run_auto_install
+    parts = cfg.cron_expression.split()
+    if len(parts) != 5:
+        return
+    minute, hour, day, month, day_of_week = parts
+    trigger = CronTrigger(
+        minute=minute, hour=hour, day=day, month=month, day_of_week=day_of_week
+    )
+
+    if existing:
+        scheduler.reschedule_job("auto_install", trigger=trigger)
+    else:
+        scheduler.add_job(
+            _wrap("auto_install", run_auto_install),
+            trigger,
+            id="auto_install",
+            max_instances=1,
+            replace_existing=True,
+        )

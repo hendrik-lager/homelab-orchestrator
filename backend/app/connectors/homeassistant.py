@@ -34,6 +34,17 @@ class HomeAssistantConnector(BaseConnector):
     async def get_resources(self) -> ResourceMetrics:
         return ResourceMetrics()
 
+    async def apply_update(self, entity_id: str) -> tuple[bool, str]:
+        """Trigger update installation via HA service call."""
+        async with self._client() as client:
+            r = await client.post(
+                "/api/services/update/install",
+                json={"entity_id": entity_id},
+            )
+            if r.status_code in (200, 201):
+                return True, "Update gestartet"
+            return False, f"HTTP {r.status_code}: {r.text}"
+
     async def get_pending_updates(self) -> list[dict]:
         async with self._client() as client:
             r = await client.get("/api/states")
