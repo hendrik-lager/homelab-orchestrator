@@ -49,3 +49,23 @@ class HomeAssistantConnector(BaseConnector):
                         "is_security": "security" in release_notes.lower(),
                     })
             return updates
+
+    async def get_addons(self) -> list[dict]:
+        """Fetch add-ons via Supervisor API. Returns [] on non-supervised installations."""
+        try:
+            async with self._client() as client:
+                r = await client.get("/api/hassio/addons")
+                r.raise_for_status()
+                data = r.json()
+                addons = data.get("data", {}).get("addons", [])
+                return [
+                    {
+                        "slug": addon["slug"],
+                        "name": addon.get("name", addon["slug"]),
+                        "state": addon.get("state", "unknown"),
+                        "version": addon.get("version"),
+                    }
+                    for addon in addons
+                ]
+        except httpx.HTTPStatusError:
+            return []

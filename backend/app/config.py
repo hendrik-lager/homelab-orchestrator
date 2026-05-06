@@ -21,5 +21,6 @@ class Settings(BaseSettings):
     health_check_interval_seconds: int = 60
     update_scan_interval_seconds: int = 3600
     metric_collect_interval_seconds: int = 60
+    service_discovery_interval_seconds: int = 300
 
 settings = Settings()

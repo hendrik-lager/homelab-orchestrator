@@ -9,6 +9,7 @@ def register_tasks():
     from app.tasks.health_check import run_health_checks
     from app.tasks.update_scan import run_update_scan
     from app.tasks.metric_collector import run_metric_collection
+    from app.tasks.service_discovery import run_service_discovery
     from app.tasks.cleanup import run_cleanup
 
     scheduler.add_job(
@@ -29,6 +30,13 @@ def register_tasks():
         run_metric_collection,
         IntervalTrigger(seconds=settings.metric_collect_interval_seconds),
         id="metric_collector",
+        max_instances=1,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        run_service_discovery,
+        IntervalTrigger(seconds=settings.service_discovery_interval_seconds),
+        id="service_discovery",
         max_instances=1,
         replace_existing=True,
     )
