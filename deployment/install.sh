@@ -66,6 +66,7 @@ fi
 
 set -a; . "$APP_DIR/.env"; set +a
 cd "$APP_DIR/backend" && "$APP_DIR/.venv/bin/alembic" upgrade head && cd ..
+chown -R "$APP_USER:$APP_USER" "$APP_DIR/data"
 
 cd "$APP_DIR/frontend" && npm install --legacy-peer-deps && npm run build && cp -r build/* "$APP_DIR/frontend/" && cd ..
 
