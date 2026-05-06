@@ -10,6 +10,10 @@ APP_USER="homelab"
 
 echo "=== HomeLab Orchestrator Install ==="
 
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y python3 python3-venv python3-pip nodejs npm nginx sqlite3 curl git
+
 if [ ! -d "$APP_DIR/.git" ]; then
     echo "Klone Repository..."
     git clone "$GITHUB_CLONE" "$APP_DIR"
@@ -18,10 +22,6 @@ else
 fi
 
 cd "$APP_DIR"
-
-export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y python3 python3-venv python3-pip nodejs npm nginx sqlite3 curl git
 
 useradd -r -s /sbin/nologin -d "$APP_DIR" "$APP_USER" 2>/dev/null || true
 
