@@ -44,7 +44,7 @@ python3 -m venv "$APP_DIR/.venv"
     "aiosmtplib>=3.0"
 
 if [ ! -f "$APP_DIR/.env" ]; then
-    python3 -c "from cryptography.fernet import Fernet; print(f'SECRET_KEY={Fernet.generate_key().decode()}')" > "$APP_DIR/.env"
+    "$APP_DIR/.venv/bin/python3" -c "from cryptography.fernet import Fernet; print(f'SECRET_KEY={Fernet.generate_key().decode()}')" > "$APP_DIR/.env"
     cat >> "$APP_DIR/.env" <<'EOF'
 DATABASE_URL=sqlite+aiosqlite:////opt/homelab-orchestrator/data/homelab.db
 SMTP_HOST=
