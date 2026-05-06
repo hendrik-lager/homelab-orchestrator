@@ -9,7 +9,7 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
   },
   "devDependencies": {
-    "@sveltejs/adapter-node": "^5",
+    "@sveltejs/adapter-static": "^3",
     "@sveltejs/kit": "^2",
     "svelte": "^5",
     "svelte-check": "^4",

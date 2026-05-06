@@ -30,7 +30,18 @@ chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
 python3 -m venv "$APP_DIR/.venv"
 "$APP_DIR/.venv/bin/pip" install --upgrade pip
-"$APP_DIR/.venv/bin/pip" install fastapi uvicorn sqlalchemy aiosqlite alembic pydantic-settings httpx asyncssh apscheduler cryptography aiosmtplib
+"$APP_DIR/.venv/bin/pip" install \
+    "fastapi>=0.115" \
+    "uvicorn[standard]>=0.32" \
+    "sqlalchemy[asyncio]>=2.0" \
+    "aiosqlite>=0.20" \
+    "alembic>=1.14" \
+    "pydantic-settings>=2.6" \
+    "httpx>=0.28" \
+    "asyncssh>=2.19" \
+    "apscheduler>=4.0" \
+    "cryptography>=44" \
+    "aiosmtplib>=3.0"
 
 if [ ! -f "$APP_DIR/.env" ]; then
     python3 -c "from cryptography.fernet import Fernet; print(f'SECRET_KEY={Fernet.generate_key().decode()}')" > "$APP_DIR/.env"
@@ -56,7 +67,7 @@ fi
 set -a; . "$APP_DIR/.env"; set +a
 cd "$APP_DIR/backend" && "$APP_DIR/.venv/bin/alembic" upgrade head && cd ..
 
-cd "$APP_DIR/frontend" && npm ci && npm run build && cp -r build/* "$APP_DIR/frontend/" && cd ..
+cd "$APP_DIR/frontend" && npm install && npm run build && cp -r build/* "$APP_DIR/frontend/" && cd ..
 
 cp "$APP_DIR/deployment/homelab-orchestrator.service" /etc/systemd/system/
 systemctl daemon-reload
@@ -66,6 +77,9 @@ cp "$APP_DIR/deployment/nginx.conf" /etc/nginx/sites-available/homelab-orchestra
 ln -sf /etc/nginx/sites-available/homelab-orchestrator /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 systemctl enable nginx
+
+systemctl restart homelab-orchestrator
+systemctl restart nginx
 
 echo ""
 echo "=== Installation abgeschlossen ==="
