@@ -54,38 +54,46 @@ class HomeAssistantConnector(BaseConnector):
             return updates
 
     async def get_addons(self) -> list[dict]:
-        """Fetch add-ons via Supervisor API. Raises on non-supervised or unauthorized installs."""
+        """Discover installed add-ons via update.* entities from /api/states.
+
+        The Supervisor REST API requires an internal token that long-lived access
+        tokens from the UI cannot provide. Instead, every installed add-on in modern
+        HA (2022+) exposes an update.* entity whose entity_picture URL contains the
+        add-on slug: /api/hassio/addons/{slug}/icon.
+        """
         async with self._client() as client:
-            r = await client.get("/api/hassio/addons")
-            if r.status_code == 401:
-                raise PermissionError(
-                    "Supervisor API: Zugriff verweigert (401). "
-                    "Bitte einen Long-Lived Access Token mit Supervisor-Berechtigung verwenden."
-                )
-            if r.status_code == 404:
-                raise RuntimeError(
-                    "Supervisor API nicht gefunden (404). "
-                    "Diese HA-Installation unterstützt keine Add-on-Discovery "
-                    "(nur HAOS / HA Supervised)."
-                )
+            r = await client.get("/api/states")
             r.raise_for_status()
+            states = r.json()
 
-            payload = r.json()
-            logger.debug("Supervisor /api/hassio/addons response: %s", payload)
+        addons: list[dict] = []
+        for state in states:
+            if not state["entity_id"].startswith("update."):
+                continue
+            attrs = state.get("attributes", {})
 
-            # The proxy wraps the response: {"result": "ok", "data": {"addons": [...]}}
-            addons_raw = payload.get("data", {}).get("addons")
-            if addons_raw is None:
-                # Some versions return the list directly
-                addons_raw = payload if isinstance(payload, list) else []
+            # Extract slug from entity_picture, e.g. /api/hassio/addons/core_mosquitto/icon
+            picture = attrs.get("entity_picture", "")
+            slug = _slug_from_picture(picture)
+            if slug is None:
+                continue  # not a Supervisor add-on (e.g. HACS, HA Core, OS updates)
 
-            return [
-                {
-                    "slug": addon["slug"],
-                    "name": addon.get("name", addon["slug"]),
-                    "state": addon.get("state", "unknown"),
-                    "version": addon.get("version"),
-                }
-                for addon in addons_raw
-                if "slug" in addon
-            ]
+            addons.append({
+                "slug": slug,
+                "name": attrs.get("title") or attrs.get("friendly_name") or state["entity_id"],
+                "state": "started",
+                "version": attrs.get("installed_version"),
+            })
+
+        return addons
+
+
+def _slug_from_picture(url: str) -> str | None:
+    """Return the add-on slug from a Supervisor icon URL, or None if not a Supervisor URL."""
+    marker = "/api/hassio/addons/"
+    idx = url.find(marker)
+    if idx == -1:
+        return None
+    after = url[idx + len(marker):]
+    slug = after.split("/")[0]
+    return slug or None
