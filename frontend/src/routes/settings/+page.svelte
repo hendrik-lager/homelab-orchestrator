@@ -1,10 +1,101 @@
 <script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
+  import { getTaskStatus, type TaskStatus } from '$lib/api/jobs';
+  import Badge from '$lib/components/ui/Badge.svelte';
+
+  let tasks = $state<TaskStatus[]>([]);
+  let loading = $state(true);
+  let refreshInterval: ReturnType<typeof setInterval>;
+
+  async function loadTasks() {
+    try {
+      tasks = await getTaskStatus();
+    } catch {
+      // silently ignore – backend may not be running during dev
+    } finally {
+      loading = false;
+    }
+  }
+
+  onMount(() => {
+    loadTasks();
+    refreshInterval = setInterval(loadTasks, 15_000);
+  });
+
+  onDestroy(() => clearInterval(refreshInterval));
+
+  function formatDate(iso: string | null): string {
+    if (!iso) return '—';
+    return new Intl.DateTimeFormat('de-DE', {
+      dateStyle: 'short',
+      timeStyle: 'medium',
+    }).format(new Date(iso));
+  }
 </script>
 
-<div class="max-w-2xl">
-  <h1 class="text-2xl font-bold mb-6">Einstellungen</h1>
+<div class="max-w-4xl space-y-6">
+  <h1 class="text-2xl font-bold">Einstellungen</h1>
 
-  <div class="bg-gray-800 rounded-lg p-6 mb-6">
+  <!-- Task Status -->
+  <div class="bg-gray-800 rounded-lg p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold">Geplante Tasks</h2>
+      <button
+        onclick={loadTasks}
+        class="text-xs text-gray-400 hover:text-white px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
+      >
+        Aktualisieren
+      </button>
+    </div>
+
+    {#if loading}
+      <p class="text-gray-400 text-sm">Lade Tasks…</p>
+    {:else if tasks.length === 0}
+      <p class="text-gray-400 text-sm">Keine Tasks gefunden.</p>
+    {:else}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-gray-400 border-b border-gray-700">
+              <th class="pb-2 pr-4 font-medium">Task</th>
+              <th class="pb-2 pr-4 font-medium">Status</th>
+              <th class="pb-2 pr-4 font-medium">Letzter Run</th>
+              <th class="pb-2 font-medium">Nächster Run</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-700/50">
+            {#each tasks as task}
+              <tr class="group">
+                <td class="py-3 pr-4 font-medium text-white">{task.label}</td>
+                <td class="py-3 pr-4">
+                  {#if task.last_result === 'ok'}
+                    <Badge variant="success">OK</Badge>
+                  {:else if task.last_result === 'error'}
+                    <Badge variant="danger">Fehler</Badge>
+                  {:else}
+                    <Badge variant="default">Noch nicht gelaufen</Badge>
+                  {/if}
+                </td>
+                <td class="py-3 pr-4">
+                  <span class="text-gray-300">{formatDate(task.last_run)}</span>
+                  {#if task.last_result === 'error' && task.last_error}
+                    <p class="text-red-400 text-xs mt-0.5 max-w-xs truncate" title={task.last_error}>
+                      {task.last_error}
+                    </p>
+                  {/if}
+                </td>
+                <td class="py-3 text-gray-300">{formatDate(task.next_run)}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-gray-500 mt-3">Wird alle 15 Sekunden automatisch aktualisiert.</p>
+    {/if}
+  </div>
+
+  <!-- SMTP -->
+  <div class="bg-gray-800 rounded-lg p-6">
     <h2 class="text-lg font-semibold mb-4">SMTP / E-Mail Benachrichtigungen</h2>
     <p class="text-gray-400 text-sm mb-4">
       Konfigurieren Sie die SMTP-Einstellungen für E-Mail-Benachrichtigungen bei Alerts.
@@ -42,6 +133,7 @@
     </div>
   </div>
 
+  <!-- Intervalle -->
   <div class="bg-gray-800 rounded-lg p-6">
     <h2 class="text-lg font-semibold mb-4">Intervalle</h2>
     <div class="space-y-4">

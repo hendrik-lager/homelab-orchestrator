@@ -12,6 +12,19 @@ export interface ScheduledJob {
   next_run: string | null;
 }
 
+export interface TaskStatus {
+  id: string;
+  label: string;
+  next_run: string | null;
+  last_run: string | null;
+  last_result: 'ok' | 'error' | null;
+  last_error: string | null;
+}
+
+export async function getTaskStatus(): Promise<TaskStatus[]> {
+  return apiFetch<TaskStatus[]>('/jobs/status');
+}
+
 export async function getJobs(): Promise<ScheduledJob[]> {
   return apiFetch<ScheduledJob[]>('/jobs');
 }

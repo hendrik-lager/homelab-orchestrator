@@ -6,6 +6,26 @@ from app.models.job import ScheduledJob
 
 router = APIRouter()
 
+
+@router.get("/status")
+async def get_scheduler_status():
+    from app.tasks.scheduler import scheduler, _task_runs, JOB_LABELS
+
+    jobs = []
+    for job in scheduler.get_jobs():
+        run = _task_runs.get(job.id, {})
+        next_run = job.next_run_time.isoformat() if job.next_run_time else None
+        jobs.append({
+            "id": job.id,
+            "label": JOB_LABELS.get(job.id, job.id),
+            "next_run": next_run,
+            "last_run": run.get("last_run"),
+            "last_result": run.get("last_result"),
+            "last_error": run.get("last_error"),
+        })
+    return jobs
+
+
 @router.get("/")
 async def list_jobs(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(ScheduledJob))
