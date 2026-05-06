@@ -35,15 +35,39 @@ class HomeAssistantConnector(BaseConnector):
         return ResourceMetrics()
 
     async def apply_update(self, entity_id: str) -> tuple[bool, str]:
-        """Trigger update installation via HA service call."""
+        """Trigger update installation via HA service call.
+
+        Accepts both a proper entity_id ("update.xxx") and old records that
+        stored the friendly name — the latter are resolved via /api/states.
+        """
+        actual = entity_id if entity_id.startswith("update.") else await self._resolve_entity_by_name(entity_id)
+        if actual is None:
+            return False, (
+                f"Keine HA-Entity für '{entity_id}' gefunden. "
+                "Bitte den Update-Scan erneut ausführen, damit entity_ids aktualisiert werden."
+            )
+
         async with self._client() as client:
             r = await client.post(
                 "/api/services/update/install",
-                json={"entity_id": entity_id},
+                json={"entity_id": actual},
             )
             if r.status_code in (200, 201):
-                return True, "Update gestartet"
+                return True, f"Update für {actual} gestartet"
             return False, f"HTTP {r.status_code}: {r.text}"
+
+    async def _resolve_entity_by_name(self, friendly_name: str) -> str | None:
+        """Look up entity_id by friendly_name from /api/states."""
+        async with self._client() as client:
+            r = await client.get("/api/states")
+            if r.status_code != 200:
+                return None
+            for state in r.json():
+                if not state["entity_id"].startswith("update."):
+                    continue
+                if state.get("attributes", {}).get("friendly_name") == friendly_name:
+                    return state["entity_id"]
+        return None
 
     async def get_pending_updates(self) -> list[dict]:
         async with self._client() as client:
