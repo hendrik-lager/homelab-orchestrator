@@ -1,20 +1,32 @@
+import logging
 from datetime import datetime
 from sqlalchemy import select, and_
 from app.database import AsyncSessionLocal
 from app.models.host import Host
 from app.models.service import Service
 
+logger = logging.getLogger(__name__)
+
 
 async def run_service_discovery():
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(Host).where(Host.enabled == True))
         hosts = result.scalars().all()
+
+        errors: list[str] = []
         for host in hosts:
-            await _discover_host(db, host)
+            error = await _discover_host(db, host)
+            if error:
+                errors.append(f"{host.name}: {error}")
+
         await db.commit()
 
+        if errors:
+            raise RuntimeError("; ".join(errors))
 
-async def _discover_host(db, host: Host):
+
+async def _discover_host(db, host: Host) -> str | None:
+    """Returns an error message on failure, None on success."""
     from app.services.credential_service import get_credentials
 
     try:
@@ -24,6 +36,7 @@ async def _discover_host(db, host: Host):
             from app.connectors.homeassistant import HomeAssistantConnector
             ha = HomeAssistantConnector(host.address, creds, host.port or 8123)
             addons = await ha.get_addons()
+            logger.info("Host %s: %d Add-on(s) gefunden", host.name, len(addons))
             await _upsert_services(db, host.id, "addon", addons, slug_key="slug")
 
         elif host.host_type == "docker":
@@ -39,10 +52,14 @@ async def _discover_host(db, host: Host):
                 }
                 for c in containers
             ]
+            logger.info("Host %s: %d Container gefunden", host.name, len(normalized))
             await _upsert_services(db, host.id, "container", normalized, slug_key="slug")
 
-    except Exception:
-        pass
+        return None
+
+    except Exception as exc:
+        logger.error("Service Discovery fehlgeschlagen für Host %s: %s", host.name, exc)
+        return str(exc)
 
 
 async def _upsert_services(db, host_id: int, service_type: str, items: list[dict], slug_key: str):
@@ -77,7 +94,6 @@ async def _upsert_services(db, host_id: int, service_type: str, items: list[dict
             service.image = item.get("version")
             service.last_checked = datetime.utcnow()
 
-    # Mark services no longer returned by the API as "removed"
     result = await db.execute(
         select(Service).where(
             and_(Service.host_id == host_id, Service.service_type == service_type)

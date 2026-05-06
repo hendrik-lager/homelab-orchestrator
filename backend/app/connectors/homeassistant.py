@@ -1,5 +1,8 @@
+import logging
 import httpx
 from .base import BaseConnector, HostStatus, ResourceMetrics
+
+logger = logging.getLogger(__name__)
 
 class HomeAssistantConnector(BaseConnector):
     """
@@ -51,21 +54,38 @@ class HomeAssistantConnector(BaseConnector):
             return updates
 
     async def get_addons(self) -> list[dict]:
-        """Fetch add-ons via Supervisor API. Returns [] on non-supervised installations."""
-        try:
-            async with self._client() as client:
-                r = await client.get("/api/hassio/addons")
-                r.raise_for_status()
-                data = r.json()
-                addons = data.get("data", {}).get("addons", [])
-                return [
-                    {
-                        "slug": addon["slug"],
-                        "name": addon.get("name", addon["slug"]),
-                        "state": addon.get("state", "unknown"),
-                        "version": addon.get("version"),
-                    }
-                    for addon in addons
-                ]
-        except httpx.HTTPStatusError:
-            return []
+        """Fetch add-ons via Supervisor API. Raises on non-supervised or unauthorized installs."""
+        async with self._client() as client:
+            r = await client.get("/api/hassio/addons")
+            if r.status_code == 401:
+                raise PermissionError(
+                    "Supervisor API: Zugriff verweigert (401). "
+                    "Bitte einen Long-Lived Access Token mit Supervisor-Berechtigung verwenden."
+                )
+            if r.status_code == 404:
+                raise RuntimeError(
+                    "Supervisor API nicht gefunden (404). "
+                    "Diese HA-Installation unterstützt keine Add-on-Discovery "
+                    "(nur HAOS / HA Supervised)."
+                )
+            r.raise_for_status()
+
+            payload = r.json()
+            logger.debug("Supervisor /api/hassio/addons response: %s", payload)
+
+            # The proxy wraps the response: {"result": "ok", "data": {"addons": [...]}}
+            addons_raw = payload.get("data", {}).get("addons")
+            if addons_raw is None:
+                # Some versions return the list directly
+                addons_raw = payload if isinstance(payload, list) else []
+
+            return [
+                {
+                    "slug": addon["slug"],
+                    "name": addon.get("name", addon["slug"]),
+                    "state": addon.get("state", "unknown"),
+                    "version": addon.get("version"),
+                }
+                for addon in addons_raw
+                if "slug" in addon
+            ]

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
+from app.models.host import Host
 from app.models.job import ScheduledJob
 
 router = APIRouter()
@@ -24,6 +25,20 @@ async def get_scheduler_status():
             "last_error": run.get("last_error"),
         })
     return jobs
+
+
+@router.post("/trigger/{job_id}")
+async def trigger_job(job_id: str):
+    """Manually trigger a scheduler job and return its result."""
+    from app.tasks.scheduler import scheduler
+    job = scheduler.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' nicht gefunden")
+    try:
+        await job.func()
+        return {"ok": True, "job_id": job_id}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.get("/")
