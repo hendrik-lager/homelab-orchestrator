@@ -8,13 +8,33 @@
 
   let { host = {}, onsubmit }: Props = $props();
 
+  const CRED_DEFAULTS: Record<string, string> = {
+    ssh: 'ssh_key',
+    proxmox: 'api_token',
+    docker: 'api_token',
+    homeassistant: 'bearer_token',
+  };
+  const PORT_DEFAULTS: Record<string, number> = {
+    ssh: 22,
+    proxmox: 8006,
+    docker: 2375,
+    homeassistant: 8123,
+  };
+
   let name = $state(host.name || '');
   let host_type = $state(host.host_type || 'ssh');
   let address = $state(host.address || '');
-  let port = $state(host.port || 22);
-  let cred_type = $state('api_token');
+  let port = $state(host.port || PORT_DEFAULTS[host_type] || 22);
+  let cred_type = $state(host.host_type ? (CRED_DEFAULTS[host.host_type] || 'api_token') : 'ssh_key');
   let username = $state('');
   let credential_value = $state('');
+
+  $effect(() => {
+    if (!host.id) {
+      cred_type = CRED_DEFAULTS[host_type] || 'api_token';
+      port = PORT_DEFAULTS[host_type] || 22;
+    }
+  });
 
   function handleSubmit() {
     onsubmit({

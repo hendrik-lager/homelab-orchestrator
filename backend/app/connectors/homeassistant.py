@@ -11,7 +11,10 @@ class HomeAssistantConnector(BaseConnector):
     def __init__(self, host_address: str, credentials: dict, port: int = 8123):
         super().__init__(host_address, credentials)
         self.base_url = f"http://{host_address}:{port}"
-        self.headers = {"Authorization": f"Bearer {credentials['bearer_token']}"}
+        token = credentials.get("bearer_token")
+        if not token:
+            raise ValueError("Kein Bearer Token konfiguriert. Bitte Credential vom Typ 'bearer_token' hinzufügen.")
+        self.headers = {"Authorization": f"Bearer {token}"}
 
     def _client(self) -> httpx.AsyncClient:
         return httpx.AsyncClient(base_url=self.base_url, headers=self.headers, timeout=10.0)
