@@ -1,4 +1,5 @@
 <script lang="ts">
+  import '../app.css';
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
   import Topbar from '$lib/components/layout/Topbar.svelte';
   import { wsStore } from '$lib/stores/websocket.svelte';
