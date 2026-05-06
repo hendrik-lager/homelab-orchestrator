@@ -43,7 +43,7 @@ python3 -m venv "$APP_DIR/.venv"
     "cryptography>=44" \
     "aiosmtplib>=3.0"
 
-if [ ! -f "$APP_DIR/.env" ]; then
+if [ ! -f "$APP_DIR/.env" ] || ! grep -q "^SECRET_KEY=" "$APP_DIR/.env"; then
     "$APP_DIR/.venv/bin/python3" -c "from cryptography.fernet import Fernet; print(f'SECRET_KEY={Fernet.generate_key().decode()}')" > "$APP_DIR/.env"
     cat >> "$APP_DIR/.env" <<'EOF'
 DATABASE_URL=sqlite+aiosqlite:////opt/homelab-orchestrator/data/homelab.db
@@ -67,7 +67,7 @@ fi
 set -a; . "$APP_DIR/.env"; set +a
 cd "$APP_DIR/backend" && "$APP_DIR/.venv/bin/alembic" upgrade head && cd ..
 
-cd "$APP_DIR/frontend" && npm install && npm run build && cp -r build/* "$APP_DIR/frontend/" && cd ..
+cd "$APP_DIR/frontend" && npm install --legacy-peer-deps && npm run build && cp -r build/* "$APP_DIR/frontend/" && cd ..
 
 cp "$APP_DIR/deployment/homelab-orchestrator.service" /etc/systemd/system/
 systemctl daemon-reload
