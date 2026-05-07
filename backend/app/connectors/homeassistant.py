@@ -79,12 +79,21 @@ class HomeAssistantConnector(BaseConnector):
                 if state["entity_id"].startswith("update.") and state["state"] == "on":
                     attrs = state.get("attributes", {})
                     release_notes = attrs.get("release_notes") or ""
+                    # HA 2023.6+ sets release_summary with a direct security flag;
+                    # older versions only expose release_notes free text.
+                    is_security = (
+                        attrs.get("skipped_version") is None  # not user-skipped
+                        and (
+                            bool(attrs.get("release_summary", {}).get("security"))
+                            or "security" in release_notes.lower()
+                        )
+                    )
                     updates.append({
                         "entity_id": state["entity_id"],
                         "name": attrs.get("friendly_name", state["entity_id"]),
                         "installed_version": attrs.get("installed_version"),
                         "latest_version": attrs.get("latest_version"),
-                        "is_security": "security" in release_notes.lower(),
+                        "is_security": is_security,
                     })
             return updates
 

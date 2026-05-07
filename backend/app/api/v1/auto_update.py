@@ -9,9 +9,13 @@ from app.models.auto_update_settings import AutoUpdateSettings
 router = APIRouter()
 
 
+_VALID_SEVERITIES = ("critical", "high", "medium", "low", "none")
+
+
 class AutoUpdateSettingsIn(BaseModel):
     enabled: bool
     security_only: bool
+    min_severity: str = "high"
     cron_expression: str
 
 
@@ -20,7 +24,7 @@ async def get_settings(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(AutoUpdateSettings).where(AutoUpdateSettings.id == 1))
     cfg = result.scalar_one_or_none()
     if not cfg:
-        return {"enabled": False, "security_only": True, "cron_expression": "0 3 * * *"}
+        return {"enabled": False, "security_only": True, "min_severity": "high", "cron_expression": "0 3 * * *"}
     return cfg
 
 
@@ -29,12 +33,15 @@ async def save_settings(data: AutoUpdateSettingsIn, db: AsyncSession = Depends(g
     parts = data.cron_expression.strip().split()
     if len(parts) != 5:
         raise HTTPException(status_code=422, detail="Cron-Ausdruck muss 5 Felder haben (z.B. '0 3 * * *')")
+    if data.min_severity not in _VALID_SEVERITIES:
+        raise HTTPException(status_code=422, detail=f"min_severity muss eines von {_VALID_SEVERITIES} sein")
 
     result = await db.execute(select(AutoUpdateSettings).where(AutoUpdateSettings.id == 1))
     cfg = result.scalar_one_or_none()
     if cfg:
         cfg.enabled = data.enabled
         cfg.security_only = data.security_only
+        cfg.min_severity = data.min_severity
         cfg.cron_expression = data.cron_expression
         cfg.updated_at = datetime.utcnow()
     else:
@@ -42,6 +49,7 @@ async def save_settings(data: AutoUpdateSettingsIn, db: AsyncSession = Depends(g
             id=1,
             enabled=data.enabled,
             security_only=data.security_only,
+            min_severity=data.min_severity,
             cron_expression=data.cron_expression,
         )
         db.add(cfg)
@@ -56,8 +64,9 @@ async def save_settings(data: AutoUpdateSettingsIn, db: AsyncSession = Depends(g
 @router.post("/apply")
 async def apply_all_now(
     security_only: bool = False,
+    min_severity: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     from app.services.update_service import apply_all_pending
-    results = await apply_all_pending(db, security_only=security_only)
+    results = await apply_all_pending(db, security_only=security_only, min_severity=min_severity)
     return {"results": results}

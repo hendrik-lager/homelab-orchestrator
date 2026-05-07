@@ -3,6 +3,9 @@ from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base
 
+# severity: "critical" | "high" | "medium" | "low" | "none"
+SEVERITY_LEVELS = ("critical", "high", "medium", "low", "none")
+
 class UpdateRecord(Base):
     __tablename__ = "update_records"
 
@@ -14,6 +17,8 @@ class UpdateRecord(Base):
     current_version: Mapped[str | None] = mapped_column(String(255), nullable=True)
     available_version: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_security: Mapped[bool] = mapped_column(Boolean, default=False)
+    severity: Mapped[str] = mapped_column(String(20), nullable=False, default="none")
+    cve_ids: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
     detected_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
     applied_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

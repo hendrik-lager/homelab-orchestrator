@@ -11,6 +11,8 @@ class UpdateRecordResponse(BaseModel):
     current_version: str | None
     available_version: str | None
     is_security: bool
+    severity: str
+    cve_ids: str | None
     status: str
     detected_at: datetime
     applied_at: datetime | None

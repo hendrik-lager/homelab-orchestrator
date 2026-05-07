@@ -60,9 +60,19 @@ async def _execute_install(host: Host, creds: dict, update: UpdateRecord) -> tup
     return False, f"Unbekannter host_type: {host.host_type}"
 
 
-async def apply_all_pending(db: AsyncSession, security_only: bool = False) -> list[dict]:
+_SEVERITY_ORDER = ["critical", "high", "medium", "low", "none"]
+
+
+async def apply_all_pending(
+    db: AsyncSession,
+    security_only: bool = False,
+    min_severity: str | None = None,
+) -> list[dict]:
     query = select(UpdateRecord).where(UpdateRecord.status == "pending")
-    if security_only:
+    if min_severity and min_severity in _SEVERITY_ORDER:
+        allowed = _SEVERITY_ORDER[: _SEVERITY_ORDER.index(min_severity) + 1]
+        query = query.where(UpdateRecord.severity.in_(allowed))
+    elif security_only:
         query = query.where(UpdateRecord.is_security == True)
     result = await db.execute(query)
     updates = result.scalars().all()

@@ -14,7 +14,11 @@ async def run_auto_install():
             return
 
         from app.services.update_service import apply_all_pending
-        results = await apply_all_pending(db, security_only=cfg.security_only)
+        results = await apply_all_pending(
+            db,
+            security_only=cfg.security_only,
+            min_severity=cfg.min_severity,
+        )
 
     ok_count = sum(1 for r in results if r["ok"])
     fail_count = len(results) - ok_count
