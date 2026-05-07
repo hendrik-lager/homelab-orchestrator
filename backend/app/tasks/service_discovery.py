@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime
 from sqlalchemy import select, and_
@@ -54,6 +55,40 @@ async def _discover_host(db, host: Host) -> str | None:
             ]
             logger.info("Host %s: %d Container gefunden", host.name, len(normalized))
             await _upsert_services(db, host.id, "container", normalized, slug_key="slug")
+
+        elif host.host_type == "proxmox":
+            from app.connectors.proxmox import ProxmoxConnector
+            proxmox = ProxmoxConnector(
+                host.address, creds, port=host.port or 8006, node_name=host.node_name or "pve"
+            )
+            vms, lxcs = await asyncio.gather(proxmox.get_vm_list(), proxmox.get_lxc_list())
+
+            normalized_vms = [
+                {
+                    "slug": str(item["vmid"]),
+                    "name": item.get("name") or f"vm-{item['vmid']}",
+                    "state": item.get("status", "unknown"),
+                    "version": None,
+                }
+                for item in vms
+                if not item.get("template")
+            ]
+            normalized_lxcs = [
+                {
+                    "slug": str(item["vmid"]),
+                    "name": item.get("name") or f"lxc-{item['vmid']}",
+                    "state": item.get("status", "unknown"),
+                    "version": None,
+                }
+                for item in lxcs
+                if not item.get("template")
+            ]
+            logger.info(
+                "Host %s: %d VM(s), %d LXC(s) gefunden",
+                host.name, len(normalized_vms), len(normalized_lxcs),
+            )
+            await _upsert_services(db, host.id, "vm", normalized_vms, slug_key="slug")
+            await _upsert_services(db, host.id, "lxc", normalized_lxcs, slug_key="slug")
 
         return None
 
