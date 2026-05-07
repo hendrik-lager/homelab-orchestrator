@@ -6,11 +6,17 @@ export interface Host {
   host_type: string;
   address: string;
   port: number | null;
+  node_name: string | null;
   enabled: boolean;
   last_seen: string | null;
   last_error: string | null;
   created_at: string;
   updated_at: string;
+  // Credential metadata (returned by GET /hosts/{id}, never contains secrets)
+  cred_type?: string;
+  username?: string;
+  token_id?: string;
+  has_secret?: boolean;
 }
 
 export async function getHosts(): Promise<Host[]> {

@@ -8,6 +8,8 @@
 
   let { host = {}, onsubmit }: Props = $props();
 
+  const isEditing = $derived(!!host.id);
+
   const CRED_DEFAULTS: Record<string, string> = {
     ssh: 'ssh_key',
     proxmox: 'api_token',
@@ -25,12 +27,12 @@
   let host_type = $state(host.host_type || 'ssh');
   let address = $state(host.address || '');
   let port = $state(host.port || PORT_DEFAULTS[host_type] || 22);
-  let cred_type = $state(host.host_type ? (CRED_DEFAULTS[host.host_type] || 'api_token') : 'ssh_key');
-  let username = $state('');
+  let cred_type = $state(host.cred_type || (host.host_type ? (CRED_DEFAULTS[host.host_type] || 'api_token') : 'ssh_key'));
+  let username = $state(host.username || '');
   let credential_value = $state('');
-  let proxmox_token_id = $state('');
+  let proxmox_token_id = $state(host.token_id || '');
   let proxmox_token_secret = $state('');
-  let proxmox_node_name = $state('pve');
+  let proxmox_node_name = $state(host.node_name || 'pve');
 
   $effect(() => {
     if (!host.id) {
@@ -41,25 +43,27 @@
 
   function handleSubmit() {
     if (host_type === 'proxmox') {
-      onsubmit({
+      const payload: any = {
         name,
         host_type,
         address,
         port: port || null,
         node_name: proxmox_node_name || 'pve',
-        token_id: proxmox_token_id,
-        token_secret: proxmox_token_secret,
-      });
+        token_id: proxmox_token_id || undefined,
+      };
+      if (proxmox_token_secret) payload.token_secret = proxmox_token_secret;
+      onsubmit(payload);
     } else {
-      onsubmit({
+      const payload: any = {
         name,
         host_type,
         address,
         port: port || null,
         cred_type,
         username: username || null,
-        credential_value,
-      });
+      };
+      if (credential_value) payload.credential_value = credential_value;
+      onsubmit(payload);
     }
   }
 </script>
@@ -93,11 +97,22 @@
     </div>
     <div>
       <label class="block text-sm text-gray-400 mb-1">Token ID <span class="text-gray-500">(z.B. user@pam!token-name)</span></label>
-      <input type="text" bind:value={proxmox_token_id} class="w-full bg-gray-700 rounded px-3 py-2 text-white font-mono" required />
+      <input type="text" bind:value={proxmox_token_id} class="w-full bg-gray-700 rounded px-3 py-2 text-white font-mono" required={!isEditing} />
     </div>
     <div>
-      <label class="block text-sm text-gray-400 mb-1">Token Secret <span class="text-gray-500">(UUID)</span></label>
-      <input type="password" bind:value={proxmox_token_secret} class="w-full bg-gray-700 rounded px-3 py-2 text-white font-mono" required />
+      <label class="block text-sm text-gray-400 mb-1">
+        Token Secret <span class="text-gray-500">(UUID)</span>
+        {#if isEditing && host.has_secret}
+          <span class="ml-2 text-xs text-green-400">&#10003; gespeichert</span>
+        {/if}
+      </label>
+      <input
+        type="password"
+        bind:value={proxmox_token_secret}
+        placeholder={isEditing && host.has_secret ? 'Leer lassen, um das bestehende Secret zu behalten' : ''}
+        class="w-full bg-gray-700 rounded px-3 py-2 text-white font-mono placeholder:text-gray-500"
+        required={!isEditing}
+      />
     </div>
   {:else}
     <div>
@@ -114,8 +129,19 @@
       <input type="text" bind:value={username} class="w-full bg-gray-700 rounded px-3 py-2 text-white" />
     </div>
     <div>
-      <label class="block text-sm text-gray-400 mb-1">Credential Wert</label>
-      <input type="password" bind:value={credential_value} class="w-full bg-gray-700 rounded px-3 py-2 text-white" />
+      <label class="block text-sm text-gray-400 mb-1">
+        Credential Wert
+        {#if isEditing && host.has_secret}
+          <span class="ml-2 text-xs text-green-400">&#10003; gespeichert</span>
+        {/if}
+      </label>
+      <input
+        type="password"
+        bind:value={credential_value}
+        placeholder={isEditing && host.has_secret ? 'Leer lassen, um das bestehende Secret zu behalten' : ''}
+        class="w-full bg-gray-700 rounded px-3 py-2 text-white placeholder:text-gray-500"
+        required={!isEditing}
+      />
     </div>
   {/if}
   <button type="submit" class="w-full bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-500">
