@@ -4,6 +4,7 @@ from datetime import datetime
 class UpdateRecordResponse(BaseModel):
     id: int
     host_id: int
+    host_name: str | None
     service_id: int | None
     update_type: str
     package_name: str | None

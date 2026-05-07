@@ -3,6 +3,7 @@ import { apiFetch } from './client';
 export interface UpdateRecord {
   id: number;
   host_id: number;
+  host_name: string | null;
   service_id: number | null;
   update_type: string;
   package_name: string | null;

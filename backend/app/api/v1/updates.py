@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
 from app.models.update import UpdateRecord
+from app.models.host import Host
 
 router = APIRouter()
 
@@ -14,7 +15,10 @@ async def list_updates(
     is_security: bool | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(UpdateRecord)
+    query = (
+        select(UpdateRecord, Host.name.label("host_name"))
+        .join(Host, UpdateRecord.host_id == Host.id, isouter=True)
+    )
     if status:
         query = query.where(UpdateRecord.status == status)
     if update_type:
@@ -22,7 +26,11 @@ async def list_updates(
     if is_security is not None:
         query = query.where(UpdateRecord.is_security == is_security)
     result = await db.execute(query.order_by(UpdateRecord.detected_at.desc()))
-    return result.scalars().all()
+    rows = result.all()
+    return [
+        {**rec.__dict__, "host_name": host_name}
+        for rec, host_name in rows
+    ]
 
 
 @router.post("/{update_id}/apply")

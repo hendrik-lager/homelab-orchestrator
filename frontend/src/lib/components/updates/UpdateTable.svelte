@@ -32,7 +32,7 @@
     <tbody>
       {#each updates as upd}
         <tr class="border-t border-gray-700 hover:bg-gray-750">
-          <td class="p-3 text-gray-300">{upd.host_id}</td>
+          <td class="p-3 text-gray-300">{upd.host_name ?? upd.host_id}</td>
           <td class="p-3 text-white font-mono">{displayName(upd)}</td>
           <td class="p-3">
             <span class="px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{upd.update_type}</span>
