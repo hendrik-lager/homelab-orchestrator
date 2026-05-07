@@ -1,8 +1,11 @@
+import logging
 from sqlalchemy import select
 from app.database import AsyncSessionLocal
 from app.models.host import Host
 from app.models.update import UpdateRecord
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 async def run_update_scan():
@@ -20,8 +23,9 @@ async def _scan_host(db, host: Host):
     try:
         creds = await get_credentials(db, host.id)
         live = await _fetch_live(host, creds)
-    except Exception:
-        return  # Host nicht erreichbar — bestehende Einträge unangetastet lassen
+    except Exception as exc:
+        logger.error("Update Scan fehlgeschlagen für Host %s (%s): %s", host.name, host.host_type, exc)
+        return
 
     await _sync_records(db, host.id, live)
 
@@ -47,10 +51,10 @@ async def _fetch_live(host: Host, creds: dict) -> dict[str, dict]:
         from app.connectors.proxmox import ProxmoxConnector
         pve = ProxmoxConnector(host.address, creds, host.port or 8006, host.node_name or "pve")
         for pkg in await pve.get_pve_updates():
-            name = pkg.get("package")
+            name = pkg.get("Package")
             if not name:
                 continue
-            is_security = "security" in pkg.get("origin", "").lower() or name.startswith("pve-")
+            is_security = "security" in pkg.get("Origin", "").lower() or name.startswith("pve-")
             live[name] = {
                 "update_type": "pve",
                 "current_version": pkg.get("OldVersion"),

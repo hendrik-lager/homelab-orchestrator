@@ -91,7 +91,11 @@ class ProxmoxConnector(BaseConnector):
             upid = r.json()["data"]
             for _ in range(30):
                 status_r = await client.get(f"/nodes/{self.node}/tasks/{upid}/status")
-                if status_r.json()["data"].get("status") == "stopped":
+                status_r.raise_for_status()
+                task_data = status_r.json()["data"]
+                if task_data.get("status") == "stopped":
+                    if task_data.get("exitstatus") != "OK":
+                        raise RuntimeError(f"apt update task failed: {task_data.get('exitstatus')}")
                     break
                 await asyncio.sleep(2)
             updates_r = await client.get(f"/nodes/{self.node}/apt/update")
