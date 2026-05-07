@@ -59,17 +59,21 @@ class ProxmoxConnector(BaseConnector):
             r.raise_for_status()
             return r.json()["data"]
 
-    async def install_pve_updates(self, username: str, private_key: str, packages: list[str] | None = None) -> tuple[bool, str]:
-        """Install PVE updates via SSH using pveupgrade or apt-get dist-upgrade."""
+    async def install_pve_updates(self, username: str, packages: list[str] | None = None, private_key: str | None = None, password: str | None = None) -> tuple[bool, str]:
+        """Install PVE updates via SSH (key or password auth)."""
         import asyncssh
-        key = asyncssh.import_private_key(private_key)
-        connect_args = {
+        connect_args: dict = {
             "host": self.host_address,
             "port": 22,
             "username": username,
-            "client_keys": [key],
             "known_hosts": None,
         }
+        if private_key:
+            connect_args["client_keys"] = [asyncssh.import_private_key(private_key)]
+        elif password:
+            connect_args["password"] = password
+        else:
+            return False, "SSH-Credentials benötigen 'private_key' oder 'password'"
         if packages:
             pkgs = " ".join(packages)
             cmd = f"DEBIAN_FRONTEND=noninteractive apt-get install --only-upgrade -y {pkgs} 2>&1"

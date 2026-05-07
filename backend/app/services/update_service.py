@@ -40,14 +40,17 @@ async def _execute_install(host: Host, creds: dict, update: UpdateRecord) -> tup
         return await apt.install_packages(packages)
 
     if host.host_type == "proxmox":
-        private_key = creds.get("private_key")
         username = creds.get("username")
-        if not private_key or not username:
-            return False, "SSH-Credentials (private_key + username) für Proxmox-Installation benötigt"
+        private_key = creds.get("private_key")
+        password = creds.get("password")
+        if not username:
+            return False, "SSH-Credential 'username' für Proxmox-Installation benötigt"
+        if not private_key and not password:
+            return False, "SSH-Credential 'private_key' oder 'password' für Proxmox-Installation benötigt"
         from app.connectors.proxmox import ProxmoxConnector
         pve = ProxmoxConnector(host.address, creds, host.port or 8006, host.node_name or "pve")
         packages = [update.package_name] if update.package_name else None
-        return await pve.install_pve_updates(username, private_key, packages)
+        return await pve.install_pve_updates(username, packages, private_key=private_key, password=password)
 
     if host.host_type == "homeassistant":
         entity_id = update.package_name

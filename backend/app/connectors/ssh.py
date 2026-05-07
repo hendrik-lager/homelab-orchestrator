@@ -13,14 +13,19 @@ class SSHConnector(BaseConnector):
         self.port = port
 
     def _connect_args(self) -> dict:
-        key = asyncssh.import_private_key(self.credentials["private_key"])
-        return {
+        args: dict = {
             "host": self.host_address,
             "port": self.port,
             "username": self.credentials["username"],
-            "client_keys": [key],
             "known_hosts": None,
         }
+        if "private_key" in self.credentials:
+            args["client_keys"] = [asyncssh.import_private_key(self.credentials["private_key"])]
+        elif "password" in self.credentials:
+            args["password"] = self.credentials["password"]
+        else:
+            raise ValueError("SSH-Credentials benötigen 'private_key' oder 'password'")
+        return args
 
     async def run(self, command: str) -> tuple[str, str, int]:
         async with asyncssh.connect(**self._connect_args()) as conn:
