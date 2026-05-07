@@ -32,7 +32,7 @@ def _make_connector(host, creds):
 
     match host.host_type:
         case "proxmox":
-            return ProxmoxConnector(host.address, creds, host.port or 8006)
+            return ProxmoxConnector(host.address, creds, host.port or 8006, host.node_name or "pve")
         case "docker":
             return DockerTCPConnector(host.address, creds, host.port or 2375)
         case "ssh":

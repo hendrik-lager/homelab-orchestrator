@@ -8,9 +8,10 @@ class ProxmoxConnector(BaseConnector):
     credentials: {token_id: "user@realm!token-name", token_secret: "uuid"}
     """
 
-    def __init__(self, host_address: str, credentials: dict, port: int = 8006):
+    def __init__(self, host_address: str, credentials: dict, port: int = 8006, node_name: str = "pve"):
         super().__init__(host_address, credentials)
         self.base_url = f"https://{host_address}:{port}/api2/json"
+        self.node = node_name
         self.headers = {
             "Authorization": f"PVEAPIToken={credentials['token_id']}={credentials['token_secret']}"
         }
@@ -34,7 +35,7 @@ class ProxmoxConnector(BaseConnector):
 
     async def get_resources(self) -> ResourceMetrics:
         async with self._client() as client:
-            r = await client.get("/nodes/pve/status")
+            r = await client.get(f"/nodes/{self.node}/status")
             r.raise_for_status()
             d = r.json()["data"]
             return ResourceMetrics(
@@ -48,13 +49,13 @@ class ProxmoxConnector(BaseConnector):
 
     async def get_lxc_list(self) -> list[dict]:
         async with self._client() as client:
-            r = await client.get("/nodes/pve/lxc")
+            r = await client.get(f"/nodes/{self.node}/lxc")
             r.raise_for_status()
             return r.json()["data"]
 
     async def get_vm_list(self) -> list[dict]:
         async with self._client() as client:
-            r = await client.get("/nodes/pve/qemu")
+            r = await client.get(f"/nodes/{self.node}/qemu")
             r.raise_for_status()
             return r.json()["data"]
 
@@ -85,14 +86,14 @@ class ProxmoxConnector(BaseConnector):
         Security-Updates: packages mit Origin 'debian-security' oder 'pve-*' prefix.
         """
         async with self._client() as client:
-            r = await client.post("/nodes/pve/apt/update")
+            r = await client.post(f"/nodes/{self.node}/apt/update")
             r.raise_for_status()
             upid = r.json()["data"]
             for _ in range(30):
-                status_r = await client.get(f"/nodes/pve/tasks/{upid}/status")
+                status_r = await client.get(f"/nodes/{self.node}/tasks/{upid}/status")
                 if status_r.json()["data"].get("status") == "stopped":
                     break
                 await asyncio.sleep(2)
-            updates_r = await client.get("/nodes/pve/apt/update")
+            updates_r = await client.get(f"/nodes/{self.node}/apt/update")
             updates_r.raise_for_status()
             return updates_r.json()["data"]

@@ -45,7 +45,7 @@ async def _execute_install(host: Host, creds: dict, update: UpdateRecord) -> tup
         if not private_key or not username:
             return False, "SSH-Credentials (private_key + username) für Proxmox-Installation benötigt"
         from app.connectors.proxmox import ProxmoxConnector
-        pve = ProxmoxConnector(host.address, creds, host.port or 8006)
+        pve = ProxmoxConnector(host.address, creds, host.port or 8006, host.node_name or "pve")
         packages = [update.package_name] if update.package_name else None
         return await pve.install_pve_updates(username, private_key, packages)
 

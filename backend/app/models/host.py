@@ -11,6 +11,7 @@ class Host(Base):
     host_type: Mapped[str] = mapped_column(String(50), nullable=False)
     address: Mapped[str] = mapped_column(String(255), nullable=False)
     port: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    node_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     last_error: Mapped[str | None] = mapped_column(String(1000), nullable=True)

@@ -45,7 +45,7 @@ async def _fetch_live(host: Host, creds: dict) -> dict[str, dict]:
 
     elif host.host_type == "proxmox":
         from app.connectors.proxmox import ProxmoxConnector
-        pve = ProxmoxConnector(host.address, creds, host.port or 8006)
+        pve = ProxmoxConnector(host.address, creds, host.port or 8006, host.node_name or "pve")
         for pkg in await pve.get_pve_updates():
             name = pkg.get("package")
             if not name:

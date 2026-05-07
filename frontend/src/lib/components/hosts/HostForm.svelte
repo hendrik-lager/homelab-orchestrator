@@ -28,6 +28,9 @@
   let cred_type = $state(host.host_type ? (CRED_DEFAULTS[host.host_type] || 'api_token') : 'ssh_key');
   let username = $state('');
   let credential_value = $state('');
+  let proxmox_token_id = $state('');
+  let proxmox_token_secret = $state('');
+  let proxmox_node_name = $state('pve');
 
   $effect(() => {
     if (!host.id) {
@@ -37,15 +40,27 @@
   });
 
   function handleSubmit() {
-    onsubmit({
-      name,
-      host_type,
-      address,
-      port: port || null,
-      cred_type,
-      username: username || null,
-      credential_value,
-    });
+    if (host_type === 'proxmox') {
+      onsubmit({
+        name,
+        host_type,
+        address,
+        port: port || null,
+        node_name: proxmox_node_name || 'pve',
+        token_id: proxmox_token_id,
+        token_secret: proxmox_token_secret,
+      });
+    } else {
+      onsubmit({
+        name,
+        host_type,
+        address,
+        port: port || null,
+        cred_type,
+        username: username || null,
+        credential_value,
+      });
+    }
   }
 </script>
 
@@ -71,23 +86,38 @@
     <label class="block text-sm text-gray-400 mb-1">Port</label>
     <input type="number" bind:value={port} class="w-full bg-gray-700 rounded px-3 py-2 text-white" />
   </div>
-  <div>
-    <label class="block text-sm text-gray-400 mb-1">Credential Typ</label>
-    <select bind:value={cred_type} class="w-full bg-gray-700 rounded px-3 py-2 text-white">
-      <option value="api_token">API Token</option>
-      <option value="ssh_key">SSH Key</option>
-      <option value="ssh_password">SSH Password</option>
-      <option value="bearer_token">Bearer Token</option>
-    </select>
-  </div>
-  <div>
-    <label class="block text-sm text-gray-400 mb-1">Benutzername (optional)</label>
-    <input type="text" bind:value={username} class="w-full bg-gray-700 rounded px-3 py-2 text-white" />
-  </div>
-  <div>
-    <label class="block text-sm text-gray-400 mb-1">Credential Wert</label>
-    <input type="password" bind:value={credential_value} class="w-full bg-gray-700 rounded px-3 py-2 text-white" />
-  </div>
+  {#if host_type === 'proxmox'}
+    <div>
+      <label class="block text-sm text-gray-400 mb-1">Node Name <span class="text-gray-500">(Standard: pve)</span></label>
+      <input type="text" bind:value={proxmox_node_name} placeholder="pve" class="w-full bg-gray-700 rounded px-3 py-2 text-white font-mono" />
+    </div>
+    <div>
+      <label class="block text-sm text-gray-400 mb-1">Token ID <span class="text-gray-500">(z.B. user@pam!token-name)</span></label>
+      <input type="text" bind:value={proxmox_token_id} class="w-full bg-gray-700 rounded px-3 py-2 text-white font-mono" required />
+    </div>
+    <div>
+      <label class="block text-sm text-gray-400 mb-1">Token Secret <span class="text-gray-500">(UUID)</span></label>
+      <input type="password" bind:value={proxmox_token_secret} class="w-full bg-gray-700 rounded px-3 py-2 text-white font-mono" required />
+    </div>
+  {:else}
+    <div>
+      <label class="block text-sm text-gray-400 mb-1">Credential Typ</label>
+      <select bind:value={cred_type} class="w-full bg-gray-700 rounded px-3 py-2 text-white">
+        <option value="api_token">API Token</option>
+        <option value="ssh_key">SSH Key</option>
+        <option value="ssh_password">SSH Password</option>
+        <option value="bearer_token">Bearer Token</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm text-gray-400 mb-1">Benutzername (optional)</label>
+      <input type="text" bind:value={username} class="w-full bg-gray-700 rounded px-3 py-2 text-white" />
+    </div>
+    <div>
+      <label class="block text-sm text-gray-400 mb-1">Credential Wert</label>
+      <input type="password" bind:value={credential_value} class="w-full bg-gray-700 rounded px-3 py-2 text-white" />
+    </div>
+  {/if}
   <button type="submit" class="w-full bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-500">
     {host.id ? 'Aktualisieren' : 'Erstellen'}
   </button>

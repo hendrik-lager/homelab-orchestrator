@@ -28,17 +28,30 @@ async def create_host(data: dict, db: AsyncSession = Depends(get_db)):
         host_type=data["host_type"],
         address=data["address"],
         port=data.get("port"),
+        node_name=data.get("node_name"),
     )
     db.add(host)
     await db.flush()
-    if cred_value := data.get("credential_value"):
-        cred = HostCredential(
+    if data.get("host_type") == "proxmox":
+        if token_id := data.get("token_id"):
+            db.add(HostCredential(
+                host_id=host.id,
+                cred_type="token_id",
+                encrypted_value=encrypt(token_id, settings.secret_key),
+            ))
+        if token_secret := data.get("token_secret"):
+            db.add(HostCredential(
+                host_id=host.id,
+                cred_type="token_secret",
+                encrypted_value=encrypt(token_secret, settings.secret_key),
+            ))
+    elif cred_value := data.get("credential_value"):
+        db.add(HostCredential(
             host_id=host.id,
             cred_type=data.get("cred_type", "api_token"),
             username=data.get("username"),
             encrypted_value=encrypt(cred_value, settings.secret_key),
-        )
-        db.add(cred)
+        ))
     await db.commit()
     await db.refresh(host)
     return host
